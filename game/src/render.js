@@ -233,6 +233,110 @@ export function createRenderer(canvas) {
     }
   }
 
+  /**
+   * The thief as a top-down hooded burglar: dark cloak shoulders, a hood with a
+   * pale face and a dark eye-mask, and a loot bag on the back. A bright ring
+   * keeps them readable against the dark floor. Drawn rotated to face their
+   * movement direction; sneaking crouches them slightly.
+   */
+  function drawThiefFigure(thief) {
+    // Drawn 1.4x the collision radius so the hood, mask and bag read as a
+    // character at a glance; collision and movement are unchanged.
+    const s = (thief.sneaking ? 0.9 : 1) * 1.4;
+    ctx.save();
+    ctx.translate(thief.x, thief.y);
+    ctx.rotate(thief.angle);
+    ctx.scale(s, s);
+    // Loot bag on the back (opposite the facing direction).
+    ctx.fillStyle = '#4a3520';
+    ctx.beginPath();
+    ctx.arc(-13, 0, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORS.gold;
+    ctx.beginPath();
+    ctx.arc(-13, 0, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Cloak shoulders.
+    ctx.fillStyle = COLORS.thiefCoat;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 15, 11, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Hood.
+    ctx.fillStyle = '#1e2a3f';
+    ctx.beginPath();
+    ctx.arc(3, 0, 8.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Face inside the hood.
+    ctx.fillStyle = COLORS.thief;
+    ctx.beginPath();
+    ctx.arc(5, 0, 5, 0, Math.PI * 2);
+    ctx.fill();
+    // The burglar's eye-mask: a dark band across the face, eyes showing in it.
+    ctx.fillStyle = '#14141c';
+    ctx.beginPath();
+    ctx.ellipse(5.5, 0, 4, 2.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORS.thief;
+    ctx.beginPath();
+    ctx.arc(6, -1.4, 0.8, 0, Math.PI * 2);
+    ctx.arc(6, 1.4, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    // Bright ring so the thief reads at a glance against the dark floor.
+    ctx.strokeStyle = '#f5f0e0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /**
+   * A guard as a top-down security figure: a navy uniform with a red outline and
+   * trim, a peaked cap with a red band and a forward brim, a pale face, and a
+   * gold badge on the chest. The red keeps them reading as danger; the cap and
+   * badge read as security. Drawn rotated to face their patrol direction.
+   */
+  function drawGuardFigure(guard) {
+    // Drawn 1.4x the collision radius so the cap, badge and uniform read as a
+    // security guard at a glance; collision and movement are unchanged.
+    ctx.save();
+    ctx.translate(guard.x, guard.y);
+    ctx.rotate(guard.angle);
+    ctx.scale(1.4, 1.4);
+    // Uniform shoulders, with a red outline so the guard reads as danger.
+    ctx.fillStyle = '#232c3d';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 16, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = guard.alerted ? '#ff3b30' : '#c0392b';
+    ctx.lineWidth = guard.alerted ? 2 : 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 16, 12, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // Peaked cap, with a red band across it and a brim pointing forward.
+    ctx.fillStyle = '#1a2233';
+    ctx.beginPath();
+    ctx.arc(3, 0, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(1, -8, 2.5, 16);
+    ctx.fillStyle = '#1a2233';
+    ctx.beginPath();
+    ctx.ellipse(11, 0, 4, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Face under the cap.
+    ctx.fillStyle = '#e8e4d8';
+    ctx.beginPath();
+    ctx.arc(5, 0, 5, 0, Math.PI * 2);
+    ctx.fill();
+    // Gold badge on the chest.
+    ctx.fillStyle = COLORS.gold;
+    ctx.beginPath();
+    ctx.arc(-2, -6, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   function drawActors(state) {
     // Thrown coins ping on the floor.
     for (const coin of state.thrownCoins) {
@@ -264,60 +368,33 @@ export function createRenderer(canvas) {
       ctx.arc(cam.x + Math.cos(cam.angle) * 5, cam.y + Math.sin(cam.angle) * 5, 3, 0, Math.PI * 2);
       ctx.fill();
     }
-    // Guards: dark red, with a cap and a suspicion ring that fills as they notice you.
+    // Guards: a uniformed security figure (navy uniform, cap, badge) with a red
+    // outline, plus a suspicion ring that fills as they notice you.
     for (const guard of state.guards) {
-      ctx.fillStyle = guard.alerted ? '#ff3b30' : COLORS.guard;
-      ctx.beginPath();
-      ctx.arc(guard.x, guard.y, guard.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = COLORS.guardDark;
-      ctx.beginPath();
-      ctx.arc(guard.x, guard.y, guard.radius - 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#e8e4d8';
-      ctx.beginPath();
-      ctx.arc(guard.x + Math.cos(guard.angle) * 6, guard.y + Math.sin(guard.angle) * 6, 4, 0, Math.PI * 2);
-      ctx.fill();
+      drawGuardFigure(guard);
       if (guard.suspicion > 0.05) {
         ctx.strokeStyle = guard.alerted ? '#ff3b30' : COLORS.gold;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(guard.x, guard.y, guard.radius + 6, -Math.PI / 2, -Math.PI / 2 + guard.suspicion * Math.PI * 2);
+        ctx.arc(guard.x, guard.y, guard.radius + 12, -Math.PI / 2, -Math.PI / 2 + guard.suspicion * Math.PI * 2);
         ctx.stroke();
       }
       if (guard.alerted) {
         ctx.fillStyle = '#ff3b30';
         ctx.font = 'bold 16px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('!', guard.x, guard.y - guard.radius - 8);
+        ctx.fillText('!', guard.x, guard.y - guard.radius - 12);
       }
     }
-    // The thief: pale, dark coat, a cap, and a facing tick. Sneaking crouches them.
-    // A bright ring keeps the thief readable against the dark floor at a glance.
+    // The thief: a hooded burglar (dark cloak, mask, loot bag), with a bright ring
+    // so they stay readable against the dark floor. Sneaking crouches them.
     const thief = state.thief;
-    const r = thief.sneaking ? thief.radius - 2 : thief.radius;
-    ctx.strokeStyle = '#f5f0e0';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(thief.x, thief.y, r + 2, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = COLORS.thiefCoat;
-    ctx.beginPath();
-    ctx.arc(thief.x, thief.y, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = COLORS.thief;
-    ctx.beginPath();
-    ctx.arc(thief.x, thief.y, r - 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = COLORS.thiefCoat;
-    ctx.beginPath();
-    ctx.arc(thief.x + Math.cos(thief.angle) * 7, thief.y + Math.sin(thief.angle) * 7, 3.5, 0, Math.PI * 2);
-    ctx.fill();
+    drawThiefFigure(thief);
     if (thief.grabbing) {
       ctx.strokeStyle = COLORS.gold;
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(thief.x, thief.y, r + 8, -Math.PI / 2, -Math.PI / 2 + thief.grabProgress * Math.PI * 2);
+      ctx.arc(thief.x, thief.y, thief.radius + 14, -Math.PI / 2, -Math.PI / 2 + thief.grabProgress * Math.PI * 2);
       ctx.stroke();
     }
   }
